@@ -4,10 +4,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
+import Restaurant
 
 class Lieferando(object):
 
     def __init__(self):
+        self.listRestaurantsURL = []
+        self.listreviews = []
+        self.delay = 30
         url = "https://www.lieferando.de/lieferservice/essen/dahme-spreewald-schoenefeld-12529"
         self.loadDriver()
         self.driver.get(url)
@@ -15,6 +19,7 @@ class Lieferando(object):
     def loadDriver(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-blink-features=AutomationControlled")
         # options.add_argument("--disable-extensions")
         # options.add_argument("--proxy-server='direct://'")
         # options.add_argument("--proxy-bypass-list=*")
@@ -26,22 +31,49 @@ class Lieferando(object):
         # options.add_argument('--ignore-certificate-errors')
         self.driver = webdriver.Chrome(options=options)
  
-    def loadListRestaurants(self):
+    def loadListRestaurantsURL(self):
 
         #Wait all restaurants are loaded
         ul_xpath = '//*[@id="page"]/div[4]/section/div[1]/div/div[4]/div[2]/ul'
-        WebDriverWait(self.driver, 40).until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, ul_xpath)))
         self.scroll_to_botoom()
 
         ul = self.driver.find_element(by=By.XPATH, value=ul_xpath)
         lis = ul.find_elements(by=By.TAG_NAME, value='li')
         for li in lis:
-            print("Title:"+ li.get_attribute("class"))
+            a = li.find_element(by=By.TAG_NAME, value='a')
+            self.listRestaurantsURL.append(a.get_attribute("href"))
 
+    def getRestaurantsData(self):
+
+        if(len(self.listRestaurantsURL) < 1):
+            print("Load the list of restaurants before using this function")
+            self.kill()
+        
+        for url in self.listRestaurantsURL:
+            urlInfo = url + "#info"
+            nbrReviews = self.getNbrOfReviews(url)
+            restaurantName = self.getRestaurantName(urlInfo)
+
+
+    def getRestaurantName(self,url):
+        return ''
+
+
+    def getNbrOfReviews(self,url):
+        self.driver.get(url)
+        reviews_xpath = '//*[@id="page"]/div[2]/section/div[1]/div[1]/section/div/div[2]/div/div[2]/span'
+        WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, reviews_xpath)))
+        review = self.driver.find_element(by=By.XPATH, value=reviews_xpath).text
+        return self.parseReviws(review)
+
+    def parseReviws(self,review):
+        res = review.split(" ")[0]
+        return res[1:]
+        
     def scroll_to_botoom(self):
-        SCROLL_PAUSE_TIME = 0.5
 
+        SCROLL_PAUSE_TIME = 0.5
         # Get scroll height
         last_height = self.driver.execute_script("return document.body.scrollHeight")
 
@@ -57,3 +89,8 @@ class Lieferando(object):
             if new_height == last_height:
                 break
             last_height = new_height
+
+    def kill(self):
+        print("Destroying the webBrowser...")
+        self.driver.quit()
+        exit()
