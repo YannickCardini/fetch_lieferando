@@ -2,6 +2,7 @@ from Lieferando import Lieferando
 
 if __name__ == "__main__":
     print("Script starting...")
-    liefe = Lieferando()
-    # liefe.loadListRestaurants()
-    liefe.getNbrOfReviews()
+    area = input('Search area: ')
+    liefe = Lieferando(area)
+    liefe.loadListRestaurantsURL()
+    liefe.getRestaurantsData()
